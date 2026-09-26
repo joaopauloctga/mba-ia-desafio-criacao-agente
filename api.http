@@ -1,0 +1,6 @@
+POST http://localhost:8000/session
+Content-Type: application/json
+
+{
+    "apartamento": "202"
+}

@@ -1,0 +1,18 @@
+[project]
+name = "mba-ia-desafio-criacao-agente"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dotenv>=0.9.9",
+    "fastapi[standard]>=0.141.1",
+    "google-adk>=2.10.0",
+    "litellm>=1.84",
+    "sqlalchemy>=2.1.1",
+]
+
+[dependency-groups]
+dev = [
+    "debugpy>=1.8.22",
+]
