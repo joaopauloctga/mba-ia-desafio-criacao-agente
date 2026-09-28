@@ -1,0 +1,164 @@
+{
+	"info": {
+		"_postman_id": "6f2e8b4a-5c1d-4a9f-9a3e-1a2b3c4d5e6f",
+		"name": "Desafio Agente",
+		"description": "Endpoints da API de agentes (sessões, mensagens, apartamentos e health check).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Sessões",
+			"item": [
+				{
+					"name": "Criar Sessão",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has session_id\", function () {",
+									"    pm.expect(jsonData).to.have.property(\"session_id\");",
+									"});",
+									"",
+									"if (jsonData.session_id) {",
+									"    pm.environment.set(\"session_id\", jsonData.session_id);",
+									"    console.log(\"session_id salvo na env:\", jsonData.session_id);",
+									"}",
+									"",
+									"if (jsonData.user_id) {",
+									"    pm.environment.set(\"user_id\", jsonData.user_id);",
+									"    console.log(\"user_id salvo na env:\", jsonData.user_id);",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"apartamento\": \"{{apartamento}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sessoes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sessoes"
+							]
+						},
+						"description": "Cria uma nova sessão para o apartamento informado. Salva `session_id` e `user_id` retornados na variável de ambiente."
+					},
+					"response": []
+				},
+				{
+					"name": "Enviar Mensagem",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Olá, gostaria de fazer uma reserva.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sessoes/{{session_id}}/mensagens",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sessoes",
+								"{{session_id}}",
+								"mensagens"
+							]
+						},
+						"description": "Envia uma mensagem para a sessão indicada por `session_id` (preenchido automaticamente após a criação da sessão)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Apartamentos",
+			"item": [
+				{
+					"name": "Listar Reservas do Apartamento",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/apartamentos/{{apartamento}}/reservas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"apartamentos",
+								"{{apartamento}}",
+								"reservas"
+							]
+						},
+						"description": "Lista as reservas cadastradas para o apartamento informado."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Visitantes do Apartamento",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/apartamentos/{{apartamento}}/visitantes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"apartamentos",
+								"{{apartamento}}",
+								"visitantes"
+							]
+						},
+						"description": "Lista os visitantes cadastrados para o apartamento informado."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				},
+				"description": "Verifica se a API está no ar."
+			},
+			"response": []
+		}
+	]
+}

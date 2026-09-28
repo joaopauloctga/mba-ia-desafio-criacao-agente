@@ -1,7 +1,17 @@
-from datetime import date
+from datetime import date, datetime
+
+from google.adk.tools import ToolContext
 
 from app.models import Area, Reserva
 from app.models.database import SessionLocal
+
+
+def validate_format_date(data: str) -> bool:
+    try:
+        datetime.strptime(data, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
 
 
 async def reserva_disponivel(
@@ -17,9 +27,16 @@ async def reserva_disponivel(
         Returns:
             {
                 error: bool,
-                mensagem: str
+                message: str
             }
     """
+
+    if not validate_format_date(data):
+        return {
+            "error": True,
+            "message": "Formato de data invalido, use Y-m-d",
+        }
+
     with SessionLocal() as session:
         if session.get(Area, area) is None:
             areas = session.query(Area).all()
@@ -43,10 +60,32 @@ async def reserva_disponivel(
 
 async def faz_reserva(
     area: str,
-    data: str
-) -> str | None:
+    data: str,
+    context: ToolContext
+) -> dict:
 
-    
+    if not validate_format_date(data):
+        return {
+            "error": True,
+            "message": "Formato de data invalido, use Y-m-d",
+        }
 
-    
-    return None
+    morador = context.state.get("apartamento")
+    if not morador:
+        raise ValueError("Morador nao identificado!")
+
+    with SessionLocal() as session:
+        codigo = f"RSV-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        new_reservation = Reserva(
+            codigo=codigo,
+            area_id=area,
+            data=date.fromisoformat(data),
+            apartamento_numero=morador,
+        )
+        session.add(new_reservation)
+        session.commit()
+
+        return {
+            "error": False,
+            "message": f"Reserva na area {area} feita com sucesso para {data} (codigo {codigo})"
+        }

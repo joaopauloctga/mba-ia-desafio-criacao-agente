@@ -29,11 +29,10 @@ def instrucao_agente_reservas(context: ReadonlyContext) -> str:
         - Areas:
         -- Sempre use o código da area para reservar ou verificar disponibilidade
         -- Se nao souber o código da area lista as areas do condominio
-        -- Se a area provida pelo user nao dar match 100% com o nome da area, nao precisa mencionar nada sobre isso, mas menciona na msg a area que vc ta usando.
+        -- Nome das areas providos pelos moradores podem variar um pouco do nome exato registrado, exemplo: `quero reservar a quadra de futebol`, assuma que é a quadra.
 
         - Datas:
-        -- User sempre o formato AAAA-MM-DD nas chamadas das tools.
-        -- Se o cliente nao mencionar o ano, considere o ano da <DATAATUAL> do system prompt, nao das msg.
+        -- Se o morador nao mencionar o ano, considere o ano da <DATAATUAL> do system prompt, nao das msg.
 
         # Regras
         - Somente o morador pode fazer um reserva do apartamento dele

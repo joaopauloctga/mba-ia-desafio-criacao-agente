@@ -3,6 +3,7 @@ from google.adk.agents import Agent
 from app.agents.reservations.agent import agent_reservartions
 from app.agents.rules_consultant.agent import agent_rules_consultant
 from app.shared.llm import llm
+from app.tools.visitors import autorizar_entrada_visitante, identifica_morador_atual
 
 root_agent = Agent(
     name="agente_gerenciador",
@@ -15,6 +16,11 @@ root_agent = Agent(
         Chame o sub agente de acordo com a necessidade do morador.
         Só fale sobre pontos relacionados ao residencial, qualquer coisa fora avise o morador que vc nao pode ajudar.
 
+        # Visitantes
+        - Moradores só pode liberar visitas para seus apartamentos.
+        - Se o morador especificar qual apartamente deseja liberar, identifique-o antes de liberar a entrada.
+    
+
         # Regras
         - Nao invente informacoes sobre o condominio, se nao souber direcione para o agente que possa atender melhor o morador.
         - Nao fale sobre outros assuntos que nao seja sobre:
@@ -22,5 +28,9 @@ root_agent = Agent(
         --- Autorizacao de visitantes
         --- Regras do condominio
     """,
+    tools=[
+        autorizar_entrada_visitante,
+        identifica_morador_atual
+    ],
     sub_agents=[agent_reservartions, agent_rules_consultant],
 )
