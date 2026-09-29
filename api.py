@@ -28,6 +28,10 @@ class SessionRequest(BaseModel):
 class MessageRequest(BaseModel):
     content: str
 
+class ConfirmationRequest(BaseModel):
+    id: str
+    confirmado: bool
+
 
 @app.post("/sessoes")
 async def create_session(payload: SessionRequest):
@@ -40,8 +44,34 @@ async def create_session(payload: SessionRequest):
     )
     return {"session_id": session.id, "user_id": ap}
 
-@app.post("/sessoes/{session_id}/mensagens")
-async def send_message(payload: MessageRequest, session_id: str):
+async def _run_and_respond(session, new_message: types.Content):
+    result = None
+    confirmation_call = None
+
+    async for event in runner.run_async(
+        session_id=session.id,
+        user_id=session.user_id,
+        new_message=new_message
+    ):
+        if not (event.is_final_response() and event.content and event.content.parts):
+            continue
+
+        parts = event.content.parts[0]
+
+        tool_call = parts.function_call
+        if tool_call is not None:
+            if tool_call.name == "adk_request_confirmation":
+                confirmation_call = tool_call
+            continue
+
+        result = {
+            "data": parts.text,
+            "error": False
+        }
+
+    return confirmation_call if confirmation_call is not None else result
+
+async def _get_session_or_404(session_id: str):
     session = await session_service.get_session(
         session_id=session_id,
         app_name=agent_app.name,
@@ -49,6 +79,11 @@ async def send_message(payload: MessageRequest, session_id: str):
     )
     if not session:
         raise HTTPException(409)
+    return session
+
+@app.post("/sessoes/{session_id}/mensagens")
+async def send_message(payload: MessageRequest, session_id: str):
+    session = await _get_session_or_404(session_id)
 
     conteudo = types.Content(
         role="user",
@@ -57,17 +92,27 @@ async def send_message(payload: MessageRequest, session_id: str):
         ]
     )
 
-    async for event in runner.run_async(
-        session_id=session.id,
-        user_id=session.user_id,
-        new_message=conteudo
-    ):
-        if event.is_final_response() and event.content and event.content.parts:
-            print("Resposta final: ", event.content.parts[0].text)
-            return {
-                "data": event.content.parts[0].text,
-                "error": False
-            }
+    return await _run_and_respond(session, conteudo)
+
+@app.post("/sessoes/{session_id}/confirmacoes")
+async def confirmations(session_id: str, data: ConfirmationRequest):
+    session = await _get_session_or_404(session_id)
+
+    conteudo = types.Content(
+        role="user",
+        parts=[
+            types.Part(
+                function_response=types.FunctionResponse(
+                    id=data.id,
+                    name="adk_request_confirmation",
+                    response={"confirmed": data.confirmado}
+                )
+            )
+        ]
+    )
+
+    return await _run_and_respond(session, conteudo)
+
 
 @app.get("/health")
 async def health():
