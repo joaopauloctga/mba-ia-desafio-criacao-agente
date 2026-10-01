@@ -7,8 +7,8 @@ requires-python = ">=3.13"
 dependencies = [
     "dotenv>=0.9.9",
     "fastapi[standard]>=0.141.1",
-    "google-adk>=2.10.0",
-    "litellm>=1.84",
+    "google-adk==2.10.0",
+    "litellm==1.84",
     "sqlalchemy>=2.1.1",
 ]
 
