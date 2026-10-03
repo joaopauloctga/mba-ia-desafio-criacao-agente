@@ -1,10 +1,13 @@
+from collections.abc import Generator
+
 from google.adk.apps import App as AdkApp
 from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService
 from google.adk.sessions.sqlite_session_service import SqliteSessionService
+from sqlalchemy.orm import Session
 
 from app.agents.manager.agent import root_agent
-from app.models.database import DB_PATH
+from app.models.database import DB_PATH, SessionLocal
 
 
 async def get_session_service() -> BaseSessionService:
@@ -22,3 +25,10 @@ async def get_agent_runner() -> Runner:
     )
 
     return runner
+
+def get_db() -> Generator[Session]:
+    try:
+        db = SessionLocal()
+        yield db
+    finally:
+        db.close()
