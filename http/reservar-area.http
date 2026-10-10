@@ -1,0 +1,54 @@
+# Fluxo: pedir para reservar uma área (exige confirmação)
+@host = http://localhost:8000
+# _get_session usa user_id "101" fixo, então use o apartamento 101
+@apartamento = 101
+@session_id = {{criarSessao.response.body.session_id}}
+@confirmacao_id = {{pedirReserva.response.body.id}}
+
+### 1. Criar sessão
+# @name criarSessao
+POST {{host}}/sessoes/
+Content-Type: application/json
+
+{
+    "apartamento": "{{apartamento}}"
+}
+
+### 2. Pedir a reserva
+# @name pedirReserva
+POST {{host}}/sessoes/{{session_id}}/mensagens
+Content-Type: application/json
+
+{
+    "content": "Quero reservar a churrasqueira para o dia 2030-05-10"
+}
+
+### 2.1. Confirmar que quer reservar
+# @name pedirReserva
+POST {{host}}/sessoes/{{session_id}}/mensagens
+Content-Type: application/json
+
+{
+    "content": "Sim, pode confirmar!"
+}
+
+### 3. Confirmar a reserva (use o id da confirmação retornado no passo 2)
+POST {{host}}/sessoes/{{session_id}}/confirmacoes
+Content-Type: application/json
+
+{
+    "id": "{{confirmacao_id}}",
+    "confirmado": true
+}
+
+### 3b. Ou recusar a reserva
+POST {{host}}/sessoes/{{session_id}}/confirmacoes
+Content-Type: application/json
+
+{
+    "id": "{{confirmacao_id}}",
+    "confirmado": false
+}
+
+### 4. Conferir a reserva criada
+GET {{host}}/apartamentos/{{apartamento}}/reservas

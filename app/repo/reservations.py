@@ -2,14 +2,12 @@ from datetime import date, datetime
 
 from sqlalchemy.orm import Session
 
-from app.models import Area, Reserva
+from app.models import Reserva
 from app.models.database import get_db_session
+from app.repo.areas import repo_get_area
 
 
-class InvalidArea(ValueError):
-    pass
-
-class AreaNotAvailable(ValueError):
+class ReservationNotAvailable(ValueError):
     pass
 
 async def repo_reserva_disponivel(
@@ -18,10 +16,7 @@ async def repo_reserva_disponivel(
     db: Session | None = None,
 ) -> bool:
     with get_db_session(db) as session:
-        if session.get(Area, area) is None:
-            areas = session.query(Area).all()
-            areas = ", ".join([a.nome for a in areas])
-            raise InvalidArea()
+        await repo_get_area(area, session)
 
         data_reserva = date.fromisoformat(data)
         exists = (
@@ -42,7 +37,7 @@ async def repo_faz_reserva(
         codigo = f"RSV-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
         available = await repo_reserva_disponivel(area, data)
         if not available:
-            raise AreaNotAvailable()
+            raise ReservationNotAvailable()
         
         new_reservation = Reserva(
             codigo=codigo,

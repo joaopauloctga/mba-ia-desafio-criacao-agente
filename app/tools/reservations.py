@@ -2,8 +2,9 @@ from datetime import datetime
 
 from google.adk.tools import ToolContext
 
+from app.repo.areas import repo_get_area
 from app.repo.reservations import (
-    AreaNotAvailable,
+    ReservationNotAvailable,
     repo_faz_reserva,
     repo_reserva_disponivel,
 )
@@ -75,40 +76,49 @@ async def faz_reserva(
     if not morador:
         raise ValueError("Morador nao identificado!")
 
-    if context.tool_confirmation is None:
-        context.request_confirmation(
-            hint=f"Você confirma a reserva da area {area} para o dia {data}",
-            payload={
-                "area": area,
-                "data": data,
-                "apartamento": morador
-            }
-        )
+    area_data = await repo_get_area(area=area)
+    if not area_data:
         return {
             "error": True,
-            "message": "Necessario tool confirmation para reservar area!"
+            "message": f"Area {area} invalida"
         }
 
-    if context.tool_confirmation.confirmed:
-        try:
-            reservation = await repo_faz_reserva(area, data, morador)
-            if reservation is not None:
-                return {
-                    "error": False,
-                    "message": f"Reserva na area {reservation.area_id} feita com sucesso para {reservation.data} (codigo {reservation.codigo})"
+    if area_data.taxa:
+        if context.tool_confirmation is None:
+            context.request_confirmation(
+                hint=f"Você confirma a reserva da area {area} para o dia {data}",
+                payload={
+                    "area": area,
+                    "data": data,
+                    "apartamento": morador
                 }
-        except AreaNotAvailable:
+            )
             return {
                 "error": True,
-                "message": "Infelizmente a area ja foi reservada por outro morador!"
+                "message": "Necessario tool confirmation para reservar area!"
+            }    
+
+        if not context.tool_confirmation.confirmed:
+            return {
+                        "error": True,
+                        "message": "Necessario confirmar a reserva."
+                    }
+        
+    try:
+        reservation = await repo_faz_reserva(area, data, morador)
+        if reservation is not None:
+            return {
+                "error": False,
+                "message": f"Reserva na area {reservation.area_id} feita com sucesso para {reservation.data} (codigo {reservation.codigo})"
             }
+    except ReservationNotAvailable:
         return {
             "error": True,
-            "message": "Não possivel fazer a reserva."
+            "message": "Infelizmente a area ja foi reservada por outro morador!"
         }
-    else:
-        return {
-            "error": True,
-            "message": "Necessario confirmar a reserva."
-        }
+    return {
+        "error": True,
+        "message": "Não possivel fazer a reserva."
+    }
+        
     

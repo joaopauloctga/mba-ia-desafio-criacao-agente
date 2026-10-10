@@ -1,0 +1,53 @@
+@host = http://localhost:8000
+@apartamento = 202
+# Preenchido automaticamente ao executar "Criar sessão" (named request abaixo)
+@session_id = {{criarSessao.response.body.session_id}}
+# Id retornado pelo agente numa confirmação pendente
+@confirmacao_id = COLE_O_ID_AQUI
+
+### Health check
+GET {{host}}/health
+
+### Listar reservas do apartamento
+GET {{host}}/apartamentos/{{apartamento}}/reservas
+
+### Listar visitantes do apartamento
+GET {{host}}/apartamentos/{{apartamento}}/visitantes
+
+### Criar sessão
+# @name criarSessao
+POST {{host}}/sessoes/
+Content-Type: application/json
+
+{
+    "apartamento": "{{apartamento}}"
+}
+
+### Enviar mensagem
+POST {{host}}/sessoes/{{session_id}}/mensagens
+Content-Type: application/json
+
+{
+    "content": "Quero reservar o salão de festas"
+}
+
+### Confirmar ação pendente
+POST {{host}}/sessoes/{{session_id}}/confirmacoes
+Content-Type: application/json
+
+{
+    "id": "{{confirmacao_id}}",
+    "confirmado": true
+}
+
+### Recusar ação pendente
+POST {{host}}/sessoes/{{session_id}}/confirmacoes
+Content-Type: application/json
+
+{
+    "id": "{{confirmacao_id}}",
+    "confirmado": false
+}
+
+### Listar eventos da sessão
+GET {{host}}/sessoes/{{session_id}}/eventos

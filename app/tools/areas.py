@@ -1,5 +1,4 @@
-from app.models.area import Area
-from app.models.database import SessionLocal
+from app.repo.areas import repo_lista_areas
 
 
 async def lista_areas_condominio() -> list[dict]:
@@ -9,6 +8,5 @@ async def lista_areas_condominio() -> list[dict]:
         Returns:
             list[dict]: {"id": int, "nome": str, "taxa": float}
     """
-    with SessionLocal() as session:
-        areas = session.query(Area).all()
-        return [{"id": a.id, "nome": a.nome, "taxa": a.taxa} for a in areas]
+    areas = await repo_lista_areas()
+    return [{"id": a.id, "nome": a.nome, "taxa": a.taxa} for a in areas]

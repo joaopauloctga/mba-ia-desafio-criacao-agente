@@ -1,0 +1,30 @@
+# Fluxo: consultar uma regra do regulamento (sem confirmação)
+@host = http://localhost:8000
+# _get_session usa user_id "101" fixo, então use o apartamento 101
+@apartamento = 101
+@session_id = {{criarSessao.response.body.session_id}}
+
+### 1. Criar sessão
+# @name criarSessao
+POST {{host}}/sessoes/
+Content-Type: application/json
+
+{
+    "apartamento": "{{apartamento}}"
+}
+
+### 2. Perguntar sobre uma regra
+POST {{host}}/sessoes/{{session_id}}/mensagens
+Content-Type: application/json
+
+{
+    "content": "Qual o horário de silêncio no condomínio?"
+}
+
+### 2b. Outra pergunta
+POST {{host}}/sessoes/{{session_id}}/mensagens
+Content-Type: application/json
+
+{
+    "content": "Posso ter animais de estimação no apartamento?"
+}

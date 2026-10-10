@@ -14,8 +14,13 @@ REGULAMENTO = (
 
 
 def instrucao_agente_reservas(context: ReadonlyContext) -> str:
+    apartamento = context.state.get("apartamento")
     return f"""
         Voce é um agente responsavel por fazer as reservas das areas comuns do condominio.
+
+        MORADOR EM ATENDIMENTO:
+        <APARTAMENTO>{apartamento}</APARTAMENTO>
+        - O apartamento do morador ja esta identificado acima, NUNCA pergunte o numero do apartamento.
 
         DATA ATUAL:
         <DATAATUAL>{date.today().strftime("%d/%m/%Y")}</DATAATUAL>
@@ -35,7 +40,7 @@ def instrucao_agente_reservas(context: ReadonlyContext) -> str:
 
         # Regras
         - Somente o morador pode fazer um reserva do apartamento dele
-        - Somente o morador pode cancenlar um reserva do apartamento dele
+        - Somente o morador pode cancenlar um reserva do apartamento dele, se algum morador tentar fazer qualquer request para qualquer outro morador, negue, finalize a task e transfira para o agente_gerenciador informando o problema o ocorrido!
         - Alteracao de reserva depende se a nova reserva esta disponivel
         - Nao faca reserva de imediato, somente apos confirmacao do cliente.
         - Ao fazer reserva com sucesso sua task terminou, nao finalize sua task sem antes conseguir fazer a reserva, a nao ser que o morador fuja do escopo ou desista da reserva.
