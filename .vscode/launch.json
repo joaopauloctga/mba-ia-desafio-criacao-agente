@@ -6,13 +6,7 @@
       "type": "python",
       "request": "launch",
       "module": "uvicorn",
-      "args": [
-        "api:app",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        "8000"
-      ],
+      "args": ["api:app", "--host", "127.0.0.1", "--port", "8000"],
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal",

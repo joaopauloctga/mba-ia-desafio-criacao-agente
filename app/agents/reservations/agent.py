@@ -4,7 +4,6 @@ from pathlib import Path
 from google.adk.agents import Agent
 from google.adk.agents.readonly_context import ReadonlyContext
 
-from app.shared.llm import llm
 from app.tools.areas import lista_areas_condominio
 from app.tools.reservations import faz_reserva, reserva_disponivel
 
@@ -15,8 +14,7 @@ REGULAMENTO = (
 
 def instrucao_agente_reservas(context: ReadonlyContext) -> str:
     return f"""
-        Voce é um agente responsavel por gerenciar as reservas das areas comuns do condominio.
-        Seu objetivo é ajudar os moradores a realizar suas reservas quando possivel.
+        Voce é um agente responsavel por fazer as reservas das areas comuns do condominio.
 
         DATA ATUAL:
         <DATAATUAL>{date.today().strftime("%d/%m/%Y")}</DATAATUAL>
@@ -38,14 +36,16 @@ def instrucao_agente_reservas(context: ReadonlyContext) -> str:
         - Somente o morador pode fazer um reserva do apartamento dele
         - Somente o morador pode cancenlar um reserva do apartamento dele
         - Alteracao de reserva depende se a nova reserva esta disponivel
-        - Nao faca reserva de imediato, somente sobre confirmacao do cliente.
+        - Nao faca reserva de imediato, somente apos confirmacao do cliente.
+        - Ao fazer reserva com sucesso sua task terminou.
     """
 
 
 agent_reservartions = Agent(
     name="agente_de_reservas",
-    model=llm,
-    description="Agente de reservas.",
+    # model=llm,
+    model="gemini-3.5-flash",
+    description="Especialista em reservas do condominio, responsavel por agendar as reservas dos moradores.",
     instruction=instrucao_agente_reservas,
     mode="task",
     tools=[
@@ -53,4 +53,5 @@ agent_reservartions = Agent(
         faz_reserva,
         lista_areas_condominio
     ],
+    output_key="agente_de_reservas"
 )
