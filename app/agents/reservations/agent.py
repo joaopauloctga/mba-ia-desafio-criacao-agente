@@ -38,7 +38,7 @@ def instrucao_agente_reservas(context: ReadonlyContext) -> str:
         - Somente o morador pode cancenlar um reserva do apartamento dele
         - Alteracao de reserva depende se a nova reserva esta disponivel
         - Nao faca reserva de imediato, somente apos confirmacao do cliente.
-        - Ao fazer reserva com sucesso sua task terminou.
+        - Ao fazer reserva com sucesso sua task terminou, nao finalize sua task sem antes conseguir fazer a reserva, a nao ser que o morador fuja do escopo ou desista da reserva.
     """
 
 

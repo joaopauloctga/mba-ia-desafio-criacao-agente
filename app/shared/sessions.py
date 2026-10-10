@@ -30,10 +30,11 @@ async def _run_and_respond(session, new_message: types.Content, runner):
 
     return confirmation_call if confirmation_call is not None else result
 
-async def _get_session_or_404(
-        session_id: str, 
-        session_service: BaseSessionService,
-        app_name: str
+async def _get_session(
+    session_id: str, 
+    session_service: BaseSessionService,
+    app_name: str,
+
 ):
     session = await session_service.get_session(
         session_id=session_id,
@@ -41,5 +42,23 @@ async def _get_session_or_404(
         user_id="101"
     )
     if not session:
-        raise HTTPException(409)
+        raise HTTPException(404)
     return session
+
+def _get_pending_confirmation_ids(session) -> set[str]:
+    """Retorna os ids de adk_request_confirmation que ainda não receberam resposta."""
+    requested: set[str] = set()
+    answered: set[str] = set()
+
+    for event in session.events:
+        if not (event.content and event.content.parts):
+            continue
+        for part in event.content.parts:
+            call = part.function_call
+            if call is not None and call.name == "adk_request_confirmation" and call.id:
+                requested.add(call.id)
+            response = part.function_response
+            if response is not None and response.name == "adk_request_confirmation" and response.id:
+                answered.add(response.id)
+
+    return requested - answered

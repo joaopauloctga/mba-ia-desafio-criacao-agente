@@ -7,7 +7,11 @@ from google.genai import types
 from pydantic import BaseModel
 
 from app.dependencies import get_agent_runner, get_session_service
-from app.shared.sessions import _get_session_or_404, _run_and_respond
+from app.shared.sessions import (
+    _get_pending_confirmation_ids,
+    _get_session,
+    _run_and_respond,
+)
 
 sessions_controller = APIRouter(
     prefix="/sessoes"
@@ -24,7 +28,7 @@ class ConfirmationRequest(BaseModel):
     confirmado: bool
 
 
-@sessions_controller.post("/")
+@sessions_controller.post("/", status_code=201)
 async def create_session(
     payload: SessionRequest, 
     session_service: Annotated[BaseSessionService, Depends(get_session_service)],
@@ -42,14 +46,14 @@ async def create_session(
     return {"session_id": session.id, "user_id": ap}
 
 
-@sessions_controller.post("/{session_id}/mensagens")
+@sessions_controller.post("/{session_id}/mensagens", status_code=200)
 async def send_message(
     payload: MessageRequest, 
     session_id: str, 
     session_service: Annotated[BaseSessionService, Depends(get_session_service)],
     runner: Annotated[Runner, Depends(get_agent_runner)]
 ):
-    session = await _get_session_or_404(session_id, session_service, runner.app_name)
+    session = await _get_session(session_id, session_service, runner.app_name)
 
     new_message = types.Content(
         role="user",
@@ -67,7 +71,14 @@ async def confirmations(
     session_service: Annotated[BaseSessionService, Depends(get_session_service)],
     runner: Annotated[Runner, Depends(get_agent_runner)]
 ):
-    session = await _get_session_or_404(session_id, session_service, runner.app_name)
+    session = await _get_session(session_id, session_service, runner.app_name)
+
+    pending_ids = _get_pending_confirmation_ids(session)
+    if data.id not in pending_ids:
+        raise HTTPException(
+            status_code=409,
+            detail="Nenhuma confirmação pendente com este id para a sessão",
+        )
 
     conteudo = types.Content(
         role="user",
