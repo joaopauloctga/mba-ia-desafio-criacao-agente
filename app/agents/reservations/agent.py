@@ -4,6 +4,7 @@ from pathlib import Path
 from google.adk.agents import Agent
 from google.adk.agents.readonly_context import ReadonlyContext
 
+from app.shared.llm import llm
 from app.tools.areas import lista_areas_condominio
 from app.tools.reservations import faz_reserva, reserva_disponivel
 
@@ -43,8 +44,7 @@ def instrucao_agente_reservas(context: ReadonlyContext) -> str:
 
 agent_reservartions = Agent(
     name="agente_de_reservas",
-    # model=llm,
-    model="gemini-3.5-flash",
+    model=llm,
     description="Especialista em reservas do condominio, responsavel por agendar as reservas dos moradores.",
     instruction=instrucao_agente_reservas,
     mode="task",

@@ -8,7 +8,6 @@ from app.tools.visitors import autorizar_entrada_visitante, identifica_morador_a
 root_agent = Agent(
     name="agente_gerenciador",
     model=llm,
-    # model="gemini-flash-latest",
     description="Gerente de agendamento das areas e condutor de regras do residencial.",
     instruction="""
         Voce é o atendente virtual do condominio Residencial Aurora.
