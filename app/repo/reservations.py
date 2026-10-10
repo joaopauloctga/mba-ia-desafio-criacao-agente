@@ -10,6 +10,10 @@ from app.repo.areas import repo_get_area
 class ReservationNotAvailable(ValueError):
     pass
 
+
+class ReservationNotFound(ValueError):
+    pass
+
 async def repo_reserva_disponivel(
     area: str,
     data: str,
@@ -25,6 +29,25 @@ async def repo_reserva_disponivel(
             .count()
         )
         return exists == 0
+
+
+async def pesquisa_reservas(
+    area: str | None = None,
+    data: str | None = None,
+    apartamento: str | None = None,
+    db: Session | None = None,
+) -> list[Reserva]:
+    with get_db_session(db) as session:
+        query = session.query(Reserva)
+
+        if area is not None:
+            query = query.filter(Reserva.area_id == area)
+        if data is not None:
+            query = query.filter(Reserva.data == date.fromisoformat(data))
+        if apartamento is not None:
+            query = query.filter(Reserva.apartamento_numero == apartamento)
+
+        return query.order_by(Reserva.data).all()
 
 
 async def repo_faz_reserva(
@@ -48,4 +71,24 @@ async def repo_faz_reserva(
         session.add(new_reservation)
         session.commit()
         return new_reservation
-        
+
+
+async def repo_cancela_reserva(
+    codigo: str,
+    apartamento: str,
+    db: Session | None = None,
+) -> None:
+    with get_db_session(db) as session:
+        reserva = (
+            session.query(Reserva)
+            .filter(
+                Reserva.codigo == codigo,
+                Reserva.apartamento_numero == apartamento,
+            )
+            .first()
+        )
+        if reserva is None:
+            raise ReservationNotFound()
+
+        session.delete(reserva)
+        session.commit()

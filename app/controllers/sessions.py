@@ -102,14 +102,7 @@ async def list_events(
     session_service: Annotated[BaseSessionService, Depends(get_session_service)],
     runner: Annotated[Runner, Depends(get_agent_runner)]
 ):
-    session = await session_service.get_session(
-        session_id=session_id,
-        app_name=runner.app_name,
-        user_id="101"
-    )
-
-    if not session:
-        raise HTTPException(404, "Invalid Session")
+    session = await _get_session(session_id, session_service, runner.app_name)
 
     return session.events
     

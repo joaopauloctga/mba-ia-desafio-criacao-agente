@@ -6,7 +6,7 @@ from google.adk.agents.readonly_context import ReadonlyContext
 
 from app.shared.llm import llm
 from app.tools.areas import lista_areas_condominio
-from app.tools.reservations import faz_reserva, reserva_disponivel
+from app.tools.reservations import cancela_reserva, faz_reserva, reserva_disponivel
 
 REGULAMENTO = (
     Path(__file__).resolve().parents[3] / "dados" / "regulamento.md"
@@ -21,6 +21,9 @@ def instrucao_agente_reservas(context: ReadonlyContext) -> str:
         MORADOR EM ATENDIMENTO:
         <APARTAMENTO>{apartamento}</APARTAMENTO>
         - O apartamento do morador ja esta identificado acima, NUNCA pergunte o numero do apartamento.
+        - Se o pedido citar outro apartamento (ou o morador disser ser de outro apartamento) diferente de APARTAMENTO,
+        NAO execute nenhuma acao e NAO use transfer_to_agent. Encerre sua task com finish_task, informando no resultado
+        que so e permitido reservar/cancelar reservas do proprio apartamento (APARTAMENTO).
 
         DATA ATUAL:
         <DATAATUAL>{date.today().strftime("%d/%m/%Y")}</DATAATUAL>
@@ -40,7 +43,7 @@ def instrucao_agente_reservas(context: ReadonlyContext) -> str:
 
         # Regras
         - Somente o morador pode fazer um reserva do apartamento dele
-        - Somente o morador pode cancenlar um reserva do apartamento dele, se algum morador tentar fazer qualquer request para qualquer outro morador, negue, finalize a task e transfira para o agente_gerenciador informando o problema o ocorrido!
+        - Somente o morador pode cancenlar um reserva do apartamento dele, se algum morador tentar fazer qualquer request para qualquer outro morador, negue e encerre a task com finish_task explicando o motivo. Nunca use transfer_to_agent para devolver o controle, sempre finalize com finish_task.
         - Alteracao de reserva depende se a nova reserva esta disponivel
         - Nao faca reserva de imediato, somente apos confirmacao do cliente.
         - Ao fazer reserva com sucesso sua task terminou, nao finalize sua task sem antes conseguir fazer a reserva, a nao ser que o morador fuja do escopo ou desista da reserva.
@@ -56,7 +59,8 @@ agent_reservartions = Agent(
     tools=[
         reserva_disponivel,
         faz_reserva,
-        lista_areas_condominio
+        lista_areas_condominio,
+        cancela_reserva
     ],
     output_key="agente_de_reservas"
 )

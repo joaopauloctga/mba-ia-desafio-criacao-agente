@@ -31,18 +31,23 @@ async def _run_and_respond(session, new_message: types.Content, runner):
     return confirmation_call if confirmation_call is not None else result
 
 async def _get_session(
-    session_id: str, 
+    session_id: str,
     session_service: BaseSessionService,
     app_name: str,
-
 ):
+    # As rotas só recebem session_id; o ADK exige user_id, então descobrimos o dono da sessão.
+    listed = await session_service.list_sessions(app_name=app_name)
+    owner = next((s.user_id for s in listed.sessions if s.id == session_id), None)
+    if owner is None:
+        raise HTTPException(404, "Invalid Session")
+
     session = await session_service.get_session(
         session_id=session_id,
         app_name=app_name,
-        user_id="101"
+        user_id=owner,
     )
     if not session:
-        raise HTTPException(404)
+        raise HTTPException(404, "Invalid Session")
     return session
 
 def _get_pending_confirmation_ids(session) -> set[str]:

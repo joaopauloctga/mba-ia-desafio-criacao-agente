@@ -1,6 +1,5 @@
 # Fluxo: consultar uma regra do regulamento (sem confirmação)
 @host = http://localhost:8000
-# _get_session usa user_id "101" fixo, então use o apartamento 101
 @apartamento = 101
 @session_id = {{criarSessao.response.body.session_id}}
 
