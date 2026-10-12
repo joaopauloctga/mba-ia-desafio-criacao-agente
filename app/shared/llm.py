@@ -6,17 +6,32 @@ from google.adk.models.lite_llm import LiteLlm
 
 load_dotenv()
 
-model_name = "openai/gpt-4.1-mini"
-# model_name = "qwen/qwen3.8-27b"
+model_name = os.getenv("MODEL_NAME")
+provider = os.getenv("MODEL_PROVIDER")
 
-llm = LiteLlm(
-    model=f"openrouter/{model_name}",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    api_base="https://openrouter.ai/api/v1",
-)
+PROVIDERS = [
+    "gemini",
+    "openroute",
+    "ollama"
+]
 
-# llm = LiteLlm(
-#     model="ollama_chat/gemma4:e2b"
-# )
+if not provider or not model_name:
+    raise ValueError("Missing provider or model settings, check .env MODEL_PROVIDER and MODEL_NAME values")
 
-# llm = "gemini-3.8-flash"
+if provider not in PROVIDERS:
+    raise ValueError(f"Invalid {provider}. Supported providers are {", ".join(PROVIDERS)}")
+
+if provider == "ollama":
+    llm = LiteLlm(
+        model=f"ollama_chat/{model_name}",
+        api_base=os.getenv("OLLAMA_HOST")
+        
+    )
+elif provider == "openroute":
+    llm = LiteLlm(
+        model=f"openrouter/{model_name}",
+        api_key=os.getenv("OPENROUTER_API_KEY"),
+        api_base="https://openrouter.ai/api/v1",
+    )
+else:
+    llm = model_name
