@@ -15,20 +15,27 @@ async def _run_and_respond(session, new_message: types.Content, runner):
         if not (event.is_final_response() and event.content and event.content.parts):
             continue
 
-        parts = event.content.parts[0]
+        for call in event.get_function_calls():
+            if call.name == "adk_request_confirmation":
+                confirmation_call = call
 
-        tool_call = parts.function_call
-        if tool_call is not None:
-            if tool_call.name == "adk_request_confirmation":
-                confirmation_call = tool_call
-            continue
+        text = "".join(
+            p.text for p in event.content.parts if p.text and not p.thought
+        )
+        if text:
+            result = {
+                "data": text,
+                "error": False
+            }
 
-        result = {
-            "data": parts.text,
-            "error": False
+    if confirmation_call is not None:
+        return confirmation_call
+    if result is None:
+        return {
+            "data": "Nao foi possivel obter uma resposta do agente.",
+            "error": True
         }
-
-    return confirmation_call if confirmation_call is not None else result
+    return result
 
 async def _get_session(
     session_id: str,
@@ -67,3 +74,12 @@ def _get_pending_confirmation_ids(session) -> set[str]:
                 answered.add(response.id)
 
     return requested - answered
+
+def _get_pending_confirmation_call(session) -> types.FunctionCall | None:
+    """Retorna o adk_request_confirmation pendente mais recente, se houver."""
+    pending_ids = _get_pending_confirmation_ids(session)
+    for event in reversed(session.events):
+        for call in event.get_function_calls():
+            if call.name == "adk_request_confirmation" and call.id in pending_ids:
+                return call
+    return None

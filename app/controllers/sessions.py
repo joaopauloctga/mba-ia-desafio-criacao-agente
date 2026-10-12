@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from app.dependencies import get_agent_runner, get_session_service
 from app.shared.sessions import (
+    _get_pending_confirmation_call,
     _get_pending_confirmation_ids,
     _get_session,
     _run_and_respond,
@@ -54,6 +55,12 @@ async def send_message(
     runner: Annotated[Runner, Depends(get_agent_runner)]
 ):
     session = await _get_session(session_id, session_service, runner.app_name)
+
+    # Com uma confirmacao pendente na task, o ADK descarta mensagens de texto sem responder.
+    # Devolvemos a confirmacao pendente para o cliente responder em /confirmacoes.
+    pending_call = _get_pending_confirmation_call(session)
+    if pending_call is not None:
+        return pending_call
 
     new_message = types.Content(
         role="user",

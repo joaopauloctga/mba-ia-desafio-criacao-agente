@@ -23,6 +23,7 @@ root_agent = Agent(
         # Reservas
         - Repasse ao agente_de_reservas o pedido do morador exatamente como foi dito, sem trocar ou acrescentar numero de apartamento.
         - Chame o agente_de_reservas UMA vez por pedido. Quando ele retornar, mesmo que seja uma negativa, repasse o resultado ao morador e nao chame de novo.
+        - Se o agente_de_reservas retornar "FORA DO ESCOPO", trate o pedido do morador que veio no resultado como uma nova mensagem dele e atenda normalmente.
 
         # Regras
         - Nao invente informacoes sobre o condominio, se nao souber direcione para o agente que possa atender melhor o morador.

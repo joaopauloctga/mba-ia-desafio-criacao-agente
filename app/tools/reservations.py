@@ -29,7 +29,7 @@ async def reserva_disponivel(
         Verifica se a reserva na area e data especificada esta disponivel.
 
         Args:
-            area: nome ou código da area
+            area: código da area (ex: quadra), obtido em lista_areas_condominio
             data: data para a reserva, formato AAAA-MM-DD
         Returns:
             {
@@ -42,6 +42,13 @@ async def reserva_disponivel(
         return {
             "error": True,
             "message": "Formato de data invalido, use Y-m-d",
+        }
+
+    area_data = await repo_get_area(area=area)
+    if not area_data:
+        return {
+            "error": True,
+            "message": f"Area {area} invalida, use o código retornado por lista_areas_condominio"
         }
 
     available = await repo_reserva_disponivel(area, data)
@@ -58,11 +65,11 @@ async def cancela_reserva(
     context: ToolContext
 ):
     """
-        Faz a reserva da area no condominio, se tiver taxa necessita de confirmacao.
-    
+        Cancela as reservas do morador na area/data. O sistema pede a confirmacao ao morador.
+
         Args:
-            area: código da area ser reservada.
-            data: data pra realizar a reserva -> Y-m-d
+            area: código da area da reserva a ser cancelada.
+            data: data da reserva a ser cancelada -> Y-m-d
         Returns:
             {
                 error: bool,
@@ -108,19 +115,22 @@ async def cancela_reserva(
                 "codigos": [r.codigo for r in has_reservations]
             }
         )
+        # Evita uma nova chamada ao LLM enquanto aguarda a confirmacao do morador.
+        context.actions.skip_summarization = True
         return {
-            "error": True,
-            "message": "Necessario tool confirmation para cancelar reserva!"
-        }  
+            "error": False,
+            "status": "aguardando_confirmacao",
+            "message": "Confirmacao solicitada ao morador. Aguarde a resposta antes de responder."
+        }
 
     if not context.tool_confirmation.confirmed:
         return {
             "error": True,
-            "message": "Cancelamento nao confirmado."
+            "message": "O morador nao confirmou o cancelamento, a reserva foi mantida."
         }
 
-    payload = context.tool_confirmation.payload or {}
-    codigos: list[str] = payload.get("codigos", [])
+    # O payload nao volta na resposta da confirmacao, entao usamos as reservas consultadas acima.
+    codigos = [r.codigo for r in has_reservations]
 
     try:
         for codigo in codigos:
@@ -143,7 +153,7 @@ async def faz_reserva(
     context: ToolContext
 ) -> dict:
     """"
-        Faz a reserva da area no condominio, se tiver taxa necessita de confirmacao.
+        Faz a reserva da area no condominio. O sistema pede a confirmacao ao morador.
 
         Args:
             area: código da area ser reservada.
@@ -172,27 +182,30 @@ async def faz_reserva(
             "message": f"Area {area} invalida"
         }
 
-    if area_data.taxa:
-        if context.tool_confirmation is None:
-            context.request_confirmation(
-                hint=f"Você confirma a reserva da area {area} para o dia {data}",
-                payload={
-                    "area": area,
-                    "data": data,
-                    "apartamento": morador
-                }
-            )
-            return {
-                "error": True,
-                "message": "Necessario tool confirmation para reservar area!"
-            }    
+    if context.tool_confirmation is None:
+        taxa = f" Taxa de R$ {area_data.taxa:.2f}." if area_data.taxa else " Sem taxa."
+        context.request_confirmation(
+            hint=f"Você confirma a reserva da area {area_data.nome} para o dia {data}?{taxa}",
+            payload={
+                "area": area,
+                "data": data,
+                "apartamento": morador
+            }
+        )
+        # Evita uma nova chamada ao LLM enquanto aguarda a confirmacao do morador.
+        context.actions.skip_summarization = True
+        return {
+            "error": False,
+            "status": "aguardando_confirmacao",
+            "message": "Confirmacao solicitada ao morador. Aguarde a resposta antes de responder."
+        }
 
-        if not context.tool_confirmation.confirmed:
-            return {
-                        "error": True,
-                        "message": "Necessario confirmar a reserva."
-                    }
-        
+    if not context.tool_confirmation.confirmed:
+        return {
+            "error": True,
+            "message": "O morador nao confirmou a reserva, a reserva nao foi feita."
+        }
+
     try:
         reservation = await repo_faz_reserva(area, data, morador)
         if reservation is not None:
