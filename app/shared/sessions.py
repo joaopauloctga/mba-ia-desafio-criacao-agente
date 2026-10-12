@@ -4,8 +4,7 @@ from google.genai import types
 
 
 async def _run_and_respond(session, new_message: types.Content, runner):
-    result = None
-    confirmation_call = None
+    resposta = None
 
     async for event in runner.run_async(
         session_id=session.id,
@@ -15,27 +14,34 @@ async def _run_and_respond(session, new_message: types.Content, runner):
         if not (event.is_final_response() and event.content and event.content.parts):
             continue
 
-        for call in event.get_function_calls():
-            if call.name == "adk_request_confirmation":
-                confirmation_call = call
+        # Quando a execucao para esperando confirmacao, a resposta vem vazia.
+        if any(c.name == "adk_request_confirmation" for c in event.get_function_calls()):
+            resposta = ""
+            continue
 
         text = "".join(
             p.text for p in event.content.parts if p.text and not p.thought
         )
         if text:
-            result = {
-                "data": text,
-                "error": False
-            }
+            resposta = text
 
-    if confirmation_call is not None:
-        return confirmation_call
-    if result is None:
-        return {
-            "data": "Nao foi possivel obter uma resposta do agente.",
-            "error": True
-        }
-    return result
+    session = await runner.session_service.get_session(
+        app_name=session.app_name,
+        user_id=session.user_id,
+        session_id=session.id,
+    )
+    pendentes = _get_pending_confirmations(session)
+
+    if resposta is None and not pendentes:
+        resposta = "Nao foi possivel obter uma resposta do agente."
+    return _build_response(resposta or "", pendentes)
+
+
+def _build_response(resposta: str, pendentes: list[dict]) -> dict:
+    return {
+        "resposta": resposta,
+        "confirmacoes_pendentes": pendentes,
+    }
 
 async def _get_session(
     session_id: str,
@@ -75,11 +81,20 @@ def _get_pending_confirmation_ids(session) -> set[str]:
 
     return requested - answered
 
-def _get_pending_confirmation_call(session) -> types.FunctionCall | None:
-    """Retorna o adk_request_confirmation pendente mais recente, se houver."""
+def _get_pending_confirmations(session) -> list[dict]:
+    """Lista as confirmacoes pendentes da sessao no formato do contrato da API."""
     pending_ids = _get_pending_confirmation_ids(session)
-    for event in reversed(session.events):
+    pendentes = []
+    for event in session.events:
         for call in event.get_function_calls():
-            if call.name == "adk_request_confirmation" and call.id in pending_ids:
-                return call
-    return None
+            if call.name != "adk_request_confirmation" or call.id not in pending_ids:
+                continue
+            args = call.args or {}
+            original = args.get("originalFunctionCall") or {}
+            confirmation = args.get("toolConfirmation") or {}
+            pendentes.append({
+                "id": call.id,
+                "acao": original.get("name"),
+                "detalhes": confirmation.get("payload") or original.get("args") or {},
+            })
+    return pendentes

@@ -8,8 +8,9 @@ from pydantic import BaseModel
 
 from app.dependencies import get_agent_runner, get_session_service
 from app.shared.sessions import (
-    _get_pending_confirmation_call,
+    _build_response,
     _get_pending_confirmation_ids,
+    _get_pending_confirmations,
     _get_session,
     _run_and_respond,
 )
@@ -22,7 +23,7 @@ class SessionRequest(BaseModel):
     apartamento: str
 
 class MessageRequest(BaseModel):
-    content: str
+    texto: str
 
 class ConfirmationRequest(BaseModel):
     id: str
@@ -44,7 +45,7 @@ async def create_session(
             "apartamento": ap,
         }
     )
-    return {"session_id": session.id, "user_id": ap}
+    return {"session_id": session.id}
 
 
 @sessions_controller.post("/{session_id}/mensagens", status_code=200)
@@ -57,15 +58,15 @@ async def send_message(
     session = await _get_session(session_id, session_service, runner.app_name)
 
     # Com uma confirmacao pendente na task, o ADK descarta mensagens de texto sem responder.
-    # Devolvemos a confirmacao pendente para o cliente responder em /confirmacoes.
-    pending_call = _get_pending_confirmation_call(session)
-    if pending_call is not None:
-        return pending_call
+    # Devolvemos as confirmacoes pendentes para o cliente responder em /confirmacoes.
+    pendentes = _get_pending_confirmations(session)
+    if pendentes:
+        return _build_response("", pendentes)
 
     new_message = types.Content(
         role="user",
         parts=[
-            types.Part.from_text(text=payload.content)
+            types.Part.from_text(text=payload.texto)
         ]
     )
 

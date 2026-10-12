@@ -15,7 +15,7 @@ def list_apartment_reservations(apartamento: str):
     filter_reservas = select(Reserva).join(Apartamento, Apartamento.numero == Reserva.apartamento_numero).where(Apartamento.numero == apartamento)
     with SessionLocal() as session:
         reservas = session.execute(filter_reservas).scalars().all()
-        return [{"codigo": r.codigo, "area": r.area, "data": r.data} for r in reservas]
+        return [{"codigo": r.codigo, "area": r.area_id, "data": r.data} for r in reservas]
 
 @aps_ctrl.get("/{apartamento}/visitantes")
 def list_apartment_visitantes(apartamento: str):

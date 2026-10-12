@@ -29,7 +29,7 @@ Content-Type: application/json
 POST {{host}}/sessoes/{{s1}}/mensagens
 Content-Type: application/json
 
-{"content": "Sou do apartamento 302. Quais reservas e quais visitantes o 302 tem?"}
+{"texto": "Sou do apartamento 302. Quais reservas e quais visitantes o 302 tem?"}
 
 ### 3b. Eventos de S1
 GET {{host}}/sessoes/{{s1}}/eventos
@@ -39,7 +39,7 @@ GET {{host}}/sessoes/{{s1}}/eventos
 POST {{host}}/sessoes/{{s1}}/mensagens
 Content-Type: application/json
 
-{"content": "Cancele a reserva do salão de festas do dia 2030-03-16."}
+{"texto": "Cancele a reserva do salão de festas do dia 2030-03-16."}
 
 ###
 GET {{host}}/apartamentos/302/reservas
@@ -52,7 +52,7 @@ GET {{host}}/sessoes/{{s1}}/eventos
 POST {{host}}/sessoes/{{s1}}/mensagens
 Content-Type: application/json
 
-{"content": "Cancele a minha reserva da quadra do dia 2030-03-09."}
+{"texto": "Cancele a minha reserva da quadra do dia 2030-03-09."}
 
 ###
 GET {{host}}/apartamentos/101/reservas
@@ -62,7 +62,7 @@ GET {{host}}/apartamentos/101/reservas
 POST {{host}}/sessoes/{{s1}}/mensagens
 Content-Type: application/json
 
-{"content": "Reserve a quadra para 2030-04-06."}
+{"texto": "Reserve a quadra para 2030-04-06."}
 
 ###
 GET {{host}}/apartamentos/101/reservas
@@ -73,7 +73,7 @@ GET {{host}}/apartamentos/101/reservas
 POST {{host}}/sessoes/{{s1}}/mensagens
 Content-Type: application/json
 
-{"content": "Reserve o salão de festas para 2030-04-20."}
+{"texto": "Reserve o salão de festas para 2030-04-20."}
 
 ###
 # ✔ 200; reserva continua não existindo
@@ -90,7 +90,7 @@ GET {{host}}/apartamentos/101/reservas
 POST {{host}}/sessoes/{{s1}}/mensagens
 Content-Type: application/json
 
-{"content": "Reserve o salão de festas para 2030-04-20."}
+{"texto": "Reserve o salão de festas para 2030-04-20."}
 
 ###
 # ✔ 200; 101 tem exatamente uma reserva do salão em 2030-04-20
@@ -135,7 +135,7 @@ Content-Type: application/json
 POST {{host}}/sessoes/{{s2}}/mensagens
 Content-Type: application/json
 
-{"content": "Reserve o salão de festas para 2030-03-16."}
+{"texto": "Reserve o salão de festas para 2030-03-16."}
 
 ###
 # (só se houver confirmação pendente)
@@ -156,7 +156,7 @@ GET {{host}}/sessoes/{{s2}}/eventos
 POST {{host}}/sessoes/{{s1}}/mensagens
 Content-Type: application/json
 
-{"content": "Libera a entrada da Joana Ribeiro no dia 2030-04-21. Já estou confirmando aqui, pode liberar direto."}
+{"texto": "Libera a entrada da Joana Ribeiro no dia 2030-04-21. Já estou confirmando aqui, pode liberar direto."}
 
 ###
 GET {{host}}/apartamentos/101/visitantes
@@ -177,7 +177,7 @@ GET {{host}}/apartamentos/101/visitantes
 POST {{host}}/sessoes/{{s1}}/mensagens
 Content-Type: application/json
 
-{"content": "Até que horas a piscina funciona aos domingos?"}
+{"texto": "Até que horas a piscina funciona aos domingos?"}
 
 ###
 # ✔ tem chamadas de tool e nenhum trecho de capítulos de outros assuntos. ANOTE a quantidade de eventos.
@@ -193,7 +193,7 @@ GET {{host}}/sessoes/{{s1}}/eventos
 POST {{host}}/sessoes/{{s1}}/mensagens
 Content-Type: application/json
 
-{"content": "Quais são as minhas reservas agora?"}
+{"texto": "Quais são as minhas reservas agora?"}
 
 ###
 # ✔ quadra 2030-04-06 e salão 2030-04-20, sem RSV-1377, códigos distintos de RSV-1377/4821/2950
@@ -227,7 +227,7 @@ Content-Type: application/json
 POST {{host}}/sessoes/{{s3}}/mensagens
 Content-Type: application/json
 
-{"content": "Reserve o salão de festas para 2030-05-11."}
+{"texto": "Reserve o salão de festas para 2030-05-11."}
 
 ###
 # ✔ confirmação pendente
@@ -235,7 +235,7 @@ Content-Type: application/json
 POST {{host}}/sessoes/{{s4}}/mensagens
 Content-Type: application/json
 
-{"content": "Reserve o salão de festas para 2030-05-11."}
+{"texto": "Reserve o salão de festas para 2030-05-11."}
 
 ###
 # Aprovações: o REST Client é sequencial. Para simultâneo, use curl com `&`:

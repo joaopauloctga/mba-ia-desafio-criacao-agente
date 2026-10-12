@@ -17,7 +17,7 @@ POST {{host}}/sessoes/{{session_id}}/mensagens
 Content-Type: application/json
 
 {
-    "content": "Qual o horário de silêncio no condomínio?"
+    "texto": "Qual o horário de silêncio no condomínio?"
 }
 
 ### 2b. Outra pergunta
@@ -25,5 +25,5 @@ POST {{host}}/sessoes/{{session_id}}/mensagens
 Content-Type: application/json
 
 {
-    "content": "Posso ter animais de estimação no apartamento?"
+    "texto": "Posso ter animais de estimação no apartamento?"
 }

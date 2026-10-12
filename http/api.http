@@ -28,7 +28,7 @@ POST {{host}}/sessoes/{{session_id}}/mensagens
 Content-Type: application/json
 
 {
-    "content": "quero cancelar a reserva da churrasqueria do dia 10."
+    "texto": "quero cancelar a reserva da churrasqueria do dia 10."
 }
 
 ### Confirmar ação pendente

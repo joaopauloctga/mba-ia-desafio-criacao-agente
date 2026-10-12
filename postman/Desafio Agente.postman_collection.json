@@ -78,7 +78,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"content\": \"Olá, gostaria de fazer uma reserva.\"\n}"
+							"raw": "{\n    \"texto\": \"Olá, gostaria de fazer uma reserva.\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/sessoes/{{session_id}}/mensagens",
