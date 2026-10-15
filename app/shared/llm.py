@@ -2,7 +2,9 @@
 import os
 
 from dotenv import load_dotenv
+from google.adk.models import Gemini
 from google.adk.models.lite_llm import LiteLlm
+from google.genai import types
 
 load_dotenv()
 
@@ -35,4 +37,9 @@ elif provider == "openroute":
         api_base="https://openrouter.ai/api/v1",
     )
 else:
-    llm = model_name
+    # Sem retry_options o google-genai nao repete a chamada: um 429/503 passageiro virava 500 na API.
+    # Repete com backoff exponencial (codigos padrao: 408, 429, 500, 502, 503, 504).
+    llm = Gemini(
+        model=model_name,
+        retry_options=types.HttpRetryOptions(attempts=6, initial_delay=2, max_delay=30),
+    )

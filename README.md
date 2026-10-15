@@ -86,7 +86,7 @@ Um único SQLite (`condominio.db`) guarda os dados do condomínio (SQLAlchemy, `
 - **Cancelamento:** `app/repo/reservations.py`, função `_remove_reserva`. Filtra por `codigo` e `apartamento_numero`, então nunca remove reserva de outro apartamento.
 - **Disponibilidade:** `reserva_disponivel` devolve só "disponivel/indisponivel". As tools de listagem só enxergam o apartamento da sessão, então nenhuma tool traz reservas ou visitantes de outro apartamento.
 
-**Por que não depende do modelo:** mesmo que o morador diga "sou do 302" e o modelo acredite, as tools continuam usando o apartamento gravado no state na criação da sessão. O prompt do agente de reservas também recusa pedidos para outro apartamento, mas isso só melhora a resposta; a proteção está no código.
+**Por que não depende do modelo:** mesmo que o morador diga "sou do 302" e o modelo acredite, as tools continuam usando o apartamento gravado no state na criação da sessão. Os prompts do gerenciador e do agente de reservas também mostram o apartamento da sessão e recusam pedidos para outro apartamento, mas isso só melhora a resposta; a proteção está no código.
 
 ### Garantia 3: nada se perde no reinício
 
@@ -103,12 +103,14 @@ Um único SQLite (`condominio.db`) guarda os dados do condomínio (SQLAlchemy, `
 - **Leitura do regulamento:** `app/agents/rules_consultant/agent.py`, constante `REGULAMENTO`. Só esse agente lê `dados/regulamento.md`, e ele vai nas instruções (`<REGULAMENTO>{REGULAMENTO}</REGULAMENTO>`) do `agente_consultor_regras`.
 - **Agente principal:** `app/agents/manager/agent.py`, função `instrucao_agente_gerenciador`. As instruções do gerenciador não contêm o regulamento.
 - **Agente de reservas:** também não o lê.
+- **Resposta restrita ao assunto:** `app/agents/rules_consultant/agent.py`, seção `## Como responder` da instrução. O consultor cita só o artigo do assunto perguntado.
 
 **Por que não depende do modelo:**
 - No ADK, as instruções de um agente vão na requisição ao modelo (`system_instruction`) e não são gravadas como evento da sessão.
 - O regulamento só é enviado quando o gerenciador aciona o consultor.
-- Em `single_turn`, o que volta para a sessão é só a resposta do consultor à pergunta feita.
+- Em `single_turn`, a sessão grava só a pergunta que o gerenciador enviou ao consultor e a resposta dele (eventos do branch `agente_consultor_regras@...`). O texto do regulamento nunca vira evento.
 - Uma pergunta sobre a piscina não faz capítulos de outros assuntos entrarem nos eventos. As mensagens seguintes também não carregam o regulamento.
+- O conteúdo da resposta é a única parte que vem do modelo, e a instrução `## Como responder` a limita ao assunto perguntado.
 
 ### Garantia 5: dois moradores, uma reserva
 
