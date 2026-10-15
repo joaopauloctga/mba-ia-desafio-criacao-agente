@@ -14,6 +14,7 @@ from app.shared.sessions import (
     _get_session,
     _run_and_respond,
 )
+from app.tools.apartments import list_apartments
 
 sessions_controller = APIRouter(
     prefix="/sessoes"
@@ -30,13 +31,17 @@ class ConfirmationRequest(BaseModel):
     confirmado: bool
 
 
-@sessions_controller.post("/", status_code=201)
+@sessions_controller.post("", status_code=201)
 async def create_session(
     payload: SessionRequest, 
     session_service: Annotated[BaseSessionService, Depends(get_session_service)],
     runner: Annotated[Runner, Depends(get_agent_runner)]
 ):
     ap = payload.apartamento
+    # O apartamento da sessao e o morador autenticado: so aceita apartamentos cadastrados.
+    if ap not in list_apartments():
+        raise HTTPException(status_code=422, detail="Apartamento nao encontrado")
+
     session = await session_service.create_session(
         app_name=runner.app_name, 
         user_id=ap, 

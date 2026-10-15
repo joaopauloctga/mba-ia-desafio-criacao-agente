@@ -6,17 +6,18 @@ from google.adk.models.lite_llm import LiteLlm
 
 load_dotenv()
 
-model_name = os.getenv("MODEL_NAME")
-provider = os.getenv("MODEL_PROVIDER")
+# Sem MODEL_PROVIDER/MODEL_NAME no .env, usa Gemini (basta preencher GEMINI_API_KEY).
+DEFAULT_PROVIDER = "gemini"
+DEFAULT_MODEL_NAME = "gemini-3.8-flash"
+
+provider = os.getenv("MODEL_PROVIDER") or DEFAULT_PROVIDER
+model_name = os.getenv("MODEL_NAME") or DEFAULT_MODEL_NAME
 
 PROVIDERS = [
     "gemini",
     "openroute",
     "ollama"
 ]
-
-if not provider or not model_name:
-    raise ValueError("Missing provider or model settings, check .env MODEL_PROVIDER and MODEL_NAME values")
 
 if provider not in PROVIDERS:
     raise ValueError(f"Invalid {provider}. Supported providers are {", ".join(PROVIDERS)}")

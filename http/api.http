@@ -16,7 +16,7 @@ GET {{host}}/apartamentos/{{apartamento}}/visitantes
 
 ### Criar sessão
 # @name criarSessao
-POST {{host}}/sessoes/
+POST {{host}}/sessoes
 Content-Type: application/json
 
 {

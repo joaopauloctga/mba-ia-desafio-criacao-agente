@@ -1,5 +1,4 @@
 from datetime import date
-from pathlib import Path
 
 from google.adk.agents import Agent
 from google.adk.agents.readonly_context import ReadonlyContext
@@ -7,10 +6,6 @@ from google.adk.agents.readonly_context import ReadonlyContext
 from app.shared.llm import llm
 from app.tools.areas import lista_areas_condominio
 from app.tools.reservations import cancela_reserva, faz_reserva, reserva_disponivel
-
-REGULAMENTO = (
-    Path(__file__).resolve().parents[3] / "dados" / "regulamento.md"
-).read_text(encoding="utf-8")
 
 
 def instrucao_agente_reservas(context: ReadonlyContext) -> str:
@@ -41,11 +36,12 @@ def instrucao_agente_reservas(context: ReadonlyContext) -> str:
 
         # Como fazer uma reserva
         1. Chame reserva_disponivel.
-        2. Se estiver disponivel, chame faz_reserva direto. NAO pergunte ao morador se ele quer reservar, o sistema pede a confirmacao (com a taxa) automaticamente.
+        2. Se estiver disponivel, chame faz_reserva direto. NAO pergunte ao morador se ele quer reservar: quando a area tem taxa, o sistema pede a confirmacao automaticamente.
         3. Se NAO estiver disponivel, avise o morador por texto e pergunte se ele quer tentar outra data. Se ele informar outra data, volte ao passo 1.
 
         # Como cancelar uma reserva
-        1. Chame cancela_reserva SOMENTE quando o morador pedir explicitamente para cancelar uma reserva existente. O sistema pede a confirmacao ao morador automaticamente.
+        1. Chame cancela_reserva SOMENTE quando o morador pedir explicitamente para cancelar uma reserva existente. NAO peca confirmacao, cancele direto.
+        2. cancela_reserva precisa da area e da data. Se o morador nao informar alguma delas, pergunte por texto antes de chamar.
         - Desistir de uma reserva nova NAO é cancelar: se o morador responder "nao", "deixa pra la" ou similar, nao chame cancela_reserva, chame finish_task dizendo que a reserva nao foi feita.
 
         # Confirmacao

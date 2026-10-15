@@ -60,16 +60,16 @@ async def reserva_disponivel(
 
 
 async def cancela_reserva(
-    area: str | None,
-    data: str | None,
+    area: str,
+    data: str,
     context: ToolContext
 ):
     """
-        Cancela as reservas do morador na area/data. O sistema pede a confirmacao ao morador.
+        Cancela a reserva do morador na area e data informadas.
 
         Args:
-            area: código da area da reserva a ser cancelada.
-            data: data da reserva a ser cancelada -> Y-m-d
+            area: código da area da reserva a ser cancelada (ex: quadra), obtido em lista_areas_condominio
+            data: data da reserva a ser cancelada, formato AAAA-MM-DD
         Returns:
             {
                 error: bool,
@@ -77,61 +77,31 @@ async def cancela_reserva(
             }
     """
 
-
-    if data is not None and not validate_format_date(data):
+    if not validate_format_date(data):
         return {
             "error": True,
-            "message": "Formato de data invalido, use Y-m-d",
+            "message": "Formato de data invalido, use AAAA-MM-DD",
         }
 
-    if area is not None:
-        area_data = await repo_get_area(area=area)
-        if not area_data:
-            return {
-                "error": True,
-                "message": f"Area {area} invalida"
-            }
+    area_data = await repo_get_area(area=area)
+    if not area_data:
+        return {
+            "error": True,
+            "message": f"Area {area} invalida, use o código retornado por lista_areas_condominio"
+        }
 
     apartamento = context.state.get("apartamento")
     if not apartamento:
         raise ValueError("Missing apartamento in the context")
 
-    has_reservations = await pesquisa_reservas(
-        area=area,
-        data=data,
-        apartamento=context.state.get("apartamento")
-    )
-
-    if not has_reservations:
+    reservas = await pesquisa_reservas(area=area, data=data, apartamento=apartamento)
+    if not reservas:
         return {
             "error": True,
-            "message" : "Voce nao tem reservas para serem canceladas!"
+            "message": f"O morador nao tem reserva da area {area_data.nome} no dia {data}."
         }
 
-    if context.tool_confirmation is None:
-        context.request_confirmation(
-            hint="Voce realmente deseja cancelar sua reserva?",
-            payload={
-                "codigos": [r.codigo for r in has_reservations]
-            }
-        )
-        # Evita uma nova chamada ao LLM enquanto aguarda a confirmacao do morador.
-        context.actions.skip_summarization = True
-        return {
-            "error": False,
-            "status": "aguardando_confirmacao",
-            "message": "Confirmacao solicitada ao morador. Aguarde a resposta antes de responder."
-        }
-
-    if not context.tool_confirmation.confirmed:
-        return {
-            "error": True,
-            "message": "O morador nao confirmou o cancelamento, a reserva foi mantida."
-        }
-
-    # O payload nao volta na resposta da confirmacao, entao usamos as reservas consultadas acima.
-    codigos = [r.codigo for r in has_reservations]
-
+    codigos = [r.codigo for r in reservas]
     try:
         for codigo in codigos:
             await repo_cancela_reserva(codigo, apartamento)
@@ -143,7 +113,7 @@ async def cancela_reserva(
 
     return {
         "error": False,
-        "message": f"Reservas canceladas com sucesso: {', '.join(codigos)}."
+        "message": f"Reserva da area {area_data.nome} no dia {data} cancelada com sucesso (codigo {', '.join(codigos)})."
     }
 
 
@@ -153,7 +123,7 @@ async def faz_reserva(
     context: ToolContext
 ) -> dict:
     """"
-        Faz a reserva da area no condominio. O sistema pede a confirmacao ao morador.
+        Faz a reserva da area no condominio. Se a area tiver taxa, o sistema pede a confirmacao ao morador.
 
         Args:
             area: código da area ser reservada.
@@ -182,13 +152,14 @@ async def faz_reserva(
             "message": f"Area {area} invalida"
         }
 
-    if context.tool_confirmation is None:
-        taxa = f" Taxa de R$ {area_data.taxa:.2f}." if area_data.taxa else " Sem taxa."
+    # Somente reserva com cobranca (taxa > 0) precisa da confirmacao do morador.
+    if area_data.taxa > 0 and context.tool_confirmation is None:
         context.request_confirmation(
-            hint=f"Você confirma a reserva da area {area_data.nome} para o dia {data}?{taxa}",
+            hint=f"Você confirma a reserva da area {area_data.nome} para o dia {data}? Taxa de R$ {area_data.taxa:.2f}.",
             payload={
                 "area": area,
                 "data": data,
+                "taxa": area_data.taxa,
                 "apartamento": morador
             }
         )
@@ -200,10 +171,10 @@ async def faz_reserva(
             "message": "Confirmacao solicitada ao morador. Aguarde a resposta antes de responder."
         }
 
-    if not context.tool_confirmation.confirmed:
+    if area_data.taxa > 0 and not context.tool_confirmation.confirmed:
         return {
             "error": True,
-            "message": "O morador nao confirmou a reserva, a reserva nao foi feita."
+            "message": f"O morador respondeu NAO na confirmacao, entao a reserva da area {area_data.nome} no dia {data} nao foi feita."
         }
 
     try:
@@ -222,5 +193,27 @@ async def faz_reserva(
         "error": True,
         "message": "Não possivel fazer a reserva."
     }
-        
-    
+
+
+async def lista_minhas_reservas(context: ToolContext) -> dict:
+    """
+        Lista as reservas do apartamento do morador em atendimento.
+
+        Returns:
+            {
+                error: bool,
+                reservas: [{codigo, area, data}]
+            }
+    """
+    apartamento = context.state.get("apartamento")
+    if not apartamento:
+        raise ValueError("Missing apartamento in the context")
+
+    reservas = await pesquisa_reservas(apartamento=apartamento)
+    return {
+        "error": False,
+        "reservas": [
+            {"codigo": r.codigo, "area": r.area_id, "data": r.data.isoformat()}
+            for r in reservas
+        ],
+    }

@@ -13,14 +13,12 @@ def load_json(nome: str) -> list[dict]:
 
 
 def seed() -> None:
+    # Recria as tabelas da aplicacao para aplicar as constraints atuais (ex: uq_reserva_area_data).
+    # As tabelas de sessao do ADK nao fazem parte do Base e ficam intactas.
+    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 
     with SessionLocal() as session:
-        session.query(Visitante).delete()
-        session.query(Reserva).delete()
-        session.query(Apartamento).delete()
-        session.query(Area).delete()
-
         for item in load_json("apartamentos.json"):
             session.add(Apartamento(numero=item["numero"], morador=item["morador"]))
 
