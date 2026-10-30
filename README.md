@@ -13,6 +13,7 @@ POST /sessoes/{id}/confirmacoes ─┤── Runner (ADK) ── agente_gerencia
                                  │                    ├─ agente_de_reservas (mode="task")
                                  │                    │    └─ tools: reserva_disponivel, faz_reserva, cancela_reserva, lista_areas_condominio
                                  │                    └─ agente_consultor_regras (mode="single_turn")
+                                 │                         └─ tools: lista_capitulos_regulamento, consulta_capitulo_regulamento
                                  └── SqliteSessionService ── condominio.db ── SQLAlchemy (apartamentos, areas, reservas, visitantes)
 ```
 
@@ -31,7 +32,7 @@ POST /sessoes/{id}/confirmacoes ─┤── Runner (ADK) ── agente_gerencia
 **`agente_consultor_regras`** (`app/agents/rules_consultant/agent.py`)
 - **Responsabilidade:** responder dúvidas com base em `dados/regulamento.md`.
 - **Como é acionado:** sub-agente em `mode="single_turn"`. O gerenciador faz a pergunta e recebe uma resposta, sem conversa com o morador.
-- **Por quê:** dúvida de regulamento é pergunta e resposta, e regra não se negocia. O single turn também é o que mantém o regulamento fora do histórico da sessão (ver Garantia 4).
+- **Por quê:** dúvida de regulamento é pergunta e resposta, e regra não se negocia. O que limita quanto do regulamento entra no histórico da sessão é o recorte por capítulo feito pelas tools, não o modo do agente (ver Garantia 4).
 
 ### Tools
 
@@ -47,6 +48,8 @@ Todas as leituras e gravações de reservas e visitantes passam por tools que ac
 | `lista_minhas_reservas` | gerenciador | Lista as reservas do apartamento da sessão |
 | `lista_meus_visitantes` | gerenciador | Lista os visitantes do apartamento da sessão |
 | `identifica_morador_atual` | gerenciador | Devolve o apartamento da sessão |
+| `lista_capitulos_regulamento` | consultor | Lista só os títulos dos capítulos do regulamento, sem o conteúdo |
+| `consulta_capitulo_regulamento` | consultor | Devolve o texto de um único capítulo do regulamento |
 
 ### Persistência
 
@@ -100,17 +103,21 @@ Um único SQLite (`condominio.db`) guarda os dados do condomínio (SQLAlchemy, `
 ### Garantia 4: o regulamento é consultado, não carregado
 
 **Onde está:**
-- **Leitura do regulamento:** `app/agents/rules_consultant/agent.py`, constante `REGULAMENTO`. Só esse agente lê `dados/regulamento.md`, e ele vai nas instruções (`<REGULAMENTO>{REGULAMENTO}</REGULAMENTO>`) do `agente_consultor_regras`.
+- **Leitura do regulamento:** `app/tools/regulation.py`. Só esse módulo lê `dados/regulamento.md` (`REGULAMENTO_PATH`). Ele lê o arquivo uma vez e indexa os capítulos pelos títulos `##` (`CAPITULOS`).
+- **Índice sem conteúdo:** `app/tools/regulation.py`, tool `lista_capitulos_regulamento`. Devolve só os títulos dos capítulos.
+- **Recorte do capítulo:** `app/tools/regulation.py`, tool `consulta_capitulo_regulamento` e função `_recorta_secao`. A tool localiza o capítulo pedido (`_encontra_capitulo`, pelo numeral romano ou por parte do título), e `_recorta_secao` devolve só o trecho entre o título dele e o próximo capítulo. Nenhuma tool devolve o regulamento inteiro.
+- **Quem consulta:** `app/agents/rules_consultant/agent.py`, lista `tools` do `agente_consultor_regras`. Só esse agente recebe as duas tools, e as instruções dele não trazem o regulamento.
 - **Agente principal:** `app/agents/manager/agent.py`, função `instrucao_agente_gerenciador`. As instruções do gerenciador não contêm o regulamento.
 - **Agente de reservas:** também não o lê.
 - **Resposta restrita ao assunto:** `app/agents/rules_consultant/agent.py`, seção `## Como responder` da instrução. O consultor cita só o artigo do assunto perguntado.
 
 **Por que não depende do modelo:**
-- No ADK, as instruções de um agente vão na requisição ao modelo (`system_instruction`) e não são gravadas como evento da sessão.
-- O regulamento só é enviado quando o gerenciador aciona o consultor.
-- Em `single_turn`, a sessão grava só a pergunta que o gerenciador enviou ao consultor e a resposta dele (eventos do branch `agente_consultor_regras@...`). O texto do regulamento nunca vira evento.
-- Uma pergunta sobre a piscina não faz capítulos de outros assuntos entrarem nos eventos. As mensagens seguintes também não carregam o regulamento.
+- Nenhum agente recebe o regulamento nas instruções. O texto só entra na conversa como resposta de `consulta_capitulo_regulamento`, e o código limita cada resposta a um único capítulo.
+- Essa resposta é gravada como evento da sessão, no branch `agente_consultor_regras@...`, junto com as outras chamadas de tool do consultor. Uma pergunta sobre a piscina grava o Capítulo IV, e os outros capítulos não entram nos eventos.
+- Qual capítulo consultar é decisão do modelo. O código garante que a consulta não traz mais que esse capítulo, nem o regulamento inteiro.
 - O conteúdo da resposta é a única parte que vem do modelo, e a instrução `## Como responder` a limita ao assunto perguntado.
+
+**Limitação conhecida:** o capítulo consultado continua no histórico. Em `single_turn`, o ADK não isola os eventos do consultor: nas mensagens seguintes, o gerenciador recebe esses eventos como contexto, inclusive o texto do capítulo. Capítulos de outros assuntos não entram, mas o capítulo consultado acompanha as chamadas seguintes do gerenciador naquela sessão.
 
 ### Garantia 5: dois moradores, uma reserva
 
